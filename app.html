@@ -3,144 +3,500 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>QRFlow Pro</title>
-
+<title>Dashboard — QRFlow</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Unbounded:wght@700;900&display=swap" rel="stylesheet"/>
-
-<!-- QR Styling -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qr-code-styling/1.6.0/qr-code-styling.js"></script>
-
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-body{background:#0b0b12;color:#fff;font-family:monospace;padding:20px}
-.container{max-width:600px;margin:auto}
-input,select{width:100%;padding:10px;margin:6px 0;background:#1a1a2a;border:1px solid #333;color:#fff}
-button{width:100%;padding:12px;margin-top:10px;background:#4ade80;border:none;font-weight:bold;cursor:pointer}
-#qr{margin-top:20px;display:flex;justify-content:center}
-</style>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script> -->
+ <script src="qrcode.min.js"></script>
 </head>
-
 <body>
 
-<div class="container">
+<!-- Supabase Config -->
+<script>
+var SUPABASE_URL = 'https://uolxpzsditolnbhwfitl.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_3y9LhtmC9P8og8O_T7P5nA_THHPNTsR';
+// Ye URL GitHub Pages pe r.html ki hogi
+var REDIRECT_BASE_URL = 'https://pradeepbhu.github.io/QRFlow/r.html';
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-<h2>🔥 QRFlow Pro Dashboard</h2>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#06060e;--s1:#0d0d1a;--s2:#131325;--s3:#1a1a30;--s4:#202038;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f0f0fa;--muted:rgba(240,240,250,0.4);--muted2:rgba(240,240,250,0.18);
+  --green:#4ade80;--gdim:rgba(74,222,128,0.1);--gglow:rgba(74,222,128,0.2);
+  --blue:#818cf8;--bdim:rgba(129,140,248,0.1);
+  --red:#f87171;--rdim:rgba(248,113,113,0.08);
+  --amber:#fbbf24;--r:12px;
+}
+html{background:var(--bg);}
+body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
 
-<!-- LINK INPUT -->
-<input id="link-id" placeholder="Link ID"/>
-<input id="android" placeholder="Android URL"/>
-<input id="ios" placeholder="iOS URL"/>
-<input id="fallback" placeholder="Fallback URL"/>
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(129,140,248,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(129,140,248,0.018) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
 
-<button onclick="saveLink()">Save Dynamic QR</button>
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(6,6,14,0.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);height:58px;display:flex;align-items:center;padding:0 20px;gap:14px;}
+.logo{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:var(--green);flex-shrink:0;}
+.logo span{color:var(--text);}
+.topbar-sep{width:1px;height:18px;background:var(--border2);}
+.user-info{font-size:11px;color:var(--muted);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.btn-logout{background:transparent;border:1px solid var(--border2);border-radius:7px;padding:6px 12px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.btn-logout:hover{border-color:rgba(248,113,113,.35);color:var(--red);}
 
-<hr/>
+/* LAYOUT */
+main{position:relative;z-index:1;display:grid;grid-template-columns:280px 1fr;flex:1;overflow:hidden;}
+@media(max-width:680px){
+  main{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .sidebar.open{display:flex;position:fixed;inset:58px 0 0 0;z-index:50;}
+}
 
-<h3>Advanced QR Generator</h3>
+/* SIDEBAR */
+.sidebar{background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;height:calc(100vh - 58px);position:sticky;top:58px;}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);}
+.btn-new{width:100%;padding:11px;background:var(--green);color:#06060e;border:none;border-radius:9px;font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:opacity .15s,box-shadow .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-new:hover{opacity:.9;box-shadow:0 0 20px var(--gglow);}
+.sidebar-list{flex:1;padding:10px 10px;}
+.sidebar-label{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);padding:4px 6px;margin-bottom:4px;}
+.qr-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s;border:1px solid transparent;margin-bottom:4px;}
+.qr-item:hover{background:var(--s2);}
+.qr-item.active{background:var(--s2);border-color:rgba(129,140,248,.25);}
+.qr-item-icon{width:32px;height:32px;border-radius:8px;background:var(--bdim);border:1px solid rgba(129,140,248,.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.qr-item-info{flex:1;min-width:0;}
+.qr-item-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qr-item-id{font-size:10px;color:var(--muted);margin-top:2px;}
+.qr-item-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.empty-sidebar{padding:20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.7;}
 
-<input id="custom-data" placeholder="Enter any text / URL"/>
+/* CONTENT */
+.content{overflow-y:auto;height:calc(100vh - 58px);padding:24px;}
 
-<input type="color" id="color1" value="#000000"/>
-<input type="color" id="color2" value="#4ade80"/>
+/* WELCOME SCREEN */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:16px;}
+.welcome-icon{font-size:52px;opacity:.25;}
+.welcome-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700;}
+.welcome-sub{font-size:12px;color:var(--muted);line-height:1.7;max-width:300px;}
 
-<select id="shape">
-<option value="square">Square</option>
-<option value="dots">Rounded</option>
-<option value="classy">Classy</option>
-</select>
+/* SECTION */
+.section{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px;}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.sec-label{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);}
 
-<input type="file" id="logo"/>
+/* FIELDS */
+.field-row{display:flex;align-items:center;gap:11px;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 15px;margin-bottom:10px;transition:border-color .2s;}
+.field-row:focus-within{border-color:var(--border2);}
+.field-icon{font-size:17px;width:24px;text-align:center;flex-shrink:0;}
+.field-body{flex:1;min-width:0;}
+.field-lbl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.fl-g{color:var(--green);}
+.fl-b{color:var(--blue);}
+.fl-m{color:var(--muted);}
+.fl-w{color:rgba(240,240,250,0.65);}
+.field-input{width:100%;background:transparent;border:none;outline:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);}
+.field-input::placeholder{color:var(--muted2);}
+.field-input:disabled{opacity:.45;cursor:not-allowed;}
 
-<button onclick="generateQR()">Generate QR</button>
-<button onclick="downloadQR()">Download PNG</button>
+/* QR PREVIEW */
+.qr-preview-row{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+#qr-container{background:#fff;border-radius:13px;padding:13px;display:inline-block;box-shadow:0 0 32px rgba(74,222,128,0.12);flex-shrink:0;}
+#qr-container canvas,#qr-container img{display:block;}
+.qr-meta{flex:1;min-width:180px;display:flex;flex-direction:column;gap:10px;}
+.qr-link-box{background:var(--gdim);border:1px solid rgba(74,222,128,.2);border-radius:9px;padding:10px 13px;font-size:11px;color:var(--green);word-break:break-all;line-height:1.6;}
+.dl-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-dl{background:var(--s2);border:1px solid var(--border2);border-radius:7px;padding:7px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:background .15s;white-space:nowrap;}
+.btn-dl:hover{background:var(--s3);}
+.qr-note{font-size:10px;color:var(--muted);line-height:1.6;padding:10px 13px;background:var(--s2);border-radius:9px;}
 
-<div id="qr"></div>
+/* SETTINGS GRID */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:500px){.settings-grid{grid-template-columns:1fr;}}
+.setting-item label{display:block;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.setting-item select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;cursor:pointer;-webkit-appearance:none;}
+.color-pick-row{display:flex;align-items:center;gap:10px;margin-top:4px;}
+.color-pick-row input[type=color]{width:36px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--s2);padding:3px;cursor:pointer;}
+.color-pick-row span{font-size:11px;color:var(--muted);}
+.slider-wrap{display:flex;align-items:center;gap:10px;margin-top:8px;}
+.slider-wrap input[type=range]{flex:1;accent-color:var(--green);}
+.slider-val{font-size:11px;color:var(--muted);min-width:40px;text-align:right;}
 
+/* SAVE & DELETE */
+.action-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.btn-save{flex:1;min-width:140px;padding:14px;background:var(--green);color:#06060e;border:none;border-radius:10px;font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s,box-shadow .2s;}
+.btn-save:hover{opacity:.9;box-shadow:0 0 24px var(--gglow);}
+.btn-save:disabled{opacity:.4;cursor:not-allowed;}
+.btn-delete{padding:14px 18px;background:var(--rdim);border:1px solid rgba(248,113,113,.2);border-radius:10px;color:var(--red);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;transition:background .15s;display:none;}
+.btn-delete:hover{background:rgba(248,113,113,.15);}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--s2);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;font-size:12px;color:var(--text);transform:translateY(80px);opacity:0;transition:all .3s ease;pointer-events:none;max-width:280px;}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast.ok{border-color:rgba(74,222,128,.3);color:var(--green);}
+#toast.fail{border-color:rgba(248,113,113,.3);color:var(--red);}
+
+/* LOADING */
+#loading-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.spin{width:40px;height:40px;border:2px solid var(--border2);border-top:2px solid var(--green);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loading-screen p{font-size:12px;color:var(--muted);}
+</style>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="spin"></div>
+  <p>Loading...</p>
 </div>
 
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">QR<span>Flow</span></div>
+  <div class="topbar-sep"></div>
+  <div class="user-info" id="user-email">—</div>
+  <button class="btn-logout" onclick="doLogout()">Logout</button>
+</div>
+
+<main>
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <button class="btn-new" onclick="openNew()">＋ New QR Link</button>
+    </div>
+    <div class="sidebar-list">
+      <div class="sidebar-label">Aapke QR Links</div>
+      <div id="qr-list"></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content">
+    <!-- WELCOME (default) -->
+    <div class="welcome" id="welcome-screen">
+      <div class="welcome-icon">📱</div>
+      <div class="welcome-title">QRFlow Dashboard</div>
+      <div class="welcome-sub">Left se koi QR link select karo ya naya banao. Links kabhi bhi change kar sakte ho!</div>
+    </div>
+
+    <!-- EDITOR (hidden by default) -->
+    <div id="editor" style="display:none;">
+
+      <!-- QR PREVIEW -->
+      <div class="section" id="qr-preview-section" style="display:none;">
+        <div class="sec-hdr">
+          <div class="sec-label">QR Code — Scan karo · Link change karo · QR same rahega</div>
+        </div>
+        <div class="qr-preview-row">
+          <div id="qr-container"></div>
+          <div class="qr-meta">
+            <div class="qr-link-box" id="qr-url-display">—</div>
+            <div class="dl-btns">
+              <button class="btn-dl" onclick="dlPNG()">⬇ PNG</button>
+              <button class="btn-dl" onclick="dlSVG()">⬇ SVG</button>
+            </div>
+            <div class="qr-note">🔁 Ye QR hamesha same rahega.<br/>Niche links badlo → Save karo — redirect change ho jayega!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LINK INFO -->
+      <div class="section">
+        <div class="sec-hdr"><div class="sec-label" id="editor-label">New QR Link</div></div>
+
+        <div class="field-row">
+          <div class="field-icon">🏷</div>
+          <div class="field-body">
+            <div class="field-lbl fl-w">Link ID (unique · no spaces)</div>
+            <input class="field-input" type="text" id="f-id" placeholder="my-app · diwali-offer · v2-launch"/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-icon">✏️</div>
+          <div class="field-body">
+            <div class="field-lbl fl-m">Label (sirf apne reference ke liye)</div>
+            <input class="field-input" type="text" id="f-label" placeholder="Main App QR · Campaign 2024"/>
+          </div>
+        </div>
+
+        <div class="field-row" style="margin-top:8px;">
+          <div class="field-icon">🤖</div>
+          <div class="field-body">
+            <div class="field-lbl fl-g">Android — Play Store URL</div>
+            <input class="field-input" type="url" id="f-android" placeholder="https://play.google.com/store/apps/details?id=com.yourapp"/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-icon">🍎</div>
+          <div class="field-body">
+            <div class="field-lbl fl-b">iOS — App Store URL</div>
+            <input class="field-input" type="url" id="f-ios" placeholder="https://apps.apple.com/app/yourapp/id1234567890"/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-icon">💻</div>
+          <div class="field-body">
+            <div class="field-lbl fl-m">Fallback — Desktop / Website</div>
+            <input class="field-input" type="url" id="f-fallback" placeholder="https://yourwebsite.com"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- QR SETTINGS -->
+      <div class="section">
+        <div class="sec-hdr"><div class="sec-label">QR Settings</div></div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label>Error Correction</label>
+            <select id="qr-ec" onchange="refreshQR()">
+              <option value="L">L — Low (7%)</option>
+              <option value="M" selected>M — Medium (15%)</option>
+              <option value="Q">Q — Quartile (25%)</option>
+              <option value="H">H — High (30%)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label>QR Size</label>
+            <div class="slider-wrap">
+              <input type="range" id="qr-size" min="128" max="512" step="8" value="240" oninput="document.getElementById('sv').textContent=this.value+'px';refreshQR()"/>
+              <span class="slider-val" id="sv">240px</span>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>Dark Color (Dots)</label>
+            <div class="color-pick-row">
+              <input type="color" id="qr-dark" value="#000000" oninput="refreshQR()"/>
+              <span>Dots ka rang</span>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>Light Color (Background)</label>
+            <div class="color-pick-row">
+              <input type="color" id="qr-light" value="#ffffff" oninput="refreshQR()"/>
+              <span>BG ka rang</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="section">
+        <div class="action-row">
+          <button class="btn-save" id="btn-save" onclick="saveLink()">💾 Save Link</button>
+          <button class="btn-delete" id="btn-delete" onclick="deleteLink()">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
 <script>
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var currentUser = null;
+var currentLinkId = null;
+var isNew = false;
+var allLinks = {};
 
-// 🔹 SUPABASE CONFIG (replace with yours)
-const supabase = window.supabase.createClient(
-  "https://uolxpzsditolnbhwfitl.supabase.co",
-  "sb_publishable_3y9LhtmC9P8og8O_T7P5nA_THHPNTsR"
-);
+// AUTH CHECK
+sb.auth.getSession().then(function(res) {
+  if (!res.data.session) { window.location.href = 'index.html'; return; }
+  currentUser = res.data.session.user;
+  document.getElementById('user-email').textContent = currentUser.email || currentUser.user_metadata?.full_name || 'User';
+  document.getElementById('loading-screen').style.display = 'none';
+  loadLinks();
+});
 
-let qr;
+sb.auth.onAuthStateChange(function(event, session) {
+  if (!session) window.location.href = 'index.html';
+});
 
-// 🔹 SAVE DYNAMIC QR
-async function saveLink(){
-  const id = document.getElementById('link-id').value;
-  const android = document.getElementById('android').value;
-  const ios = document.getElementById('ios').value;
-  const fallback = document.getElementById('fallback').value;
-
-  await supabase.from('qr_links').insert({
-    id,
-    android_url: android,
-    ios_url: ios,
-    fallback_url: fallback
-  });
-
-  alert("Saved!");
+async function doLogout() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
 }
 
-// 🔹 GENERATE QR (ADVANCED)
-function generateQR(){
+// LOAD ALL LINKS FOR THIS USER
+async function loadLinks() {
+  var { data, error } = await sb
+    .from('qr_links')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
 
-  const data = document.getElementById('custom-data').value;
-  const color1 = document.getElementById('color1').value;
-  const color2 = document.getElementById('color2').value;
-  const shape = document.getElementById('shape').value;
+  if (error) { toast('Links load nahi hue: ' + error.message, 'fail'); return; }
 
-  const file = document.getElementById('logo').files[0];
-  let logoURL = null;
+  allLinks = {};
+  (data || []).forEach(function(r) { allLinks[r.id] = r; });
+  renderSidebar();
+}
 
-  if(file){
-    logoURL = URL.createObjectURL(file);
+function renderSidebar() {
+  var list = document.getElementById('qr-list');
+  var ids = Object.keys(allLinks);
+  if (ids.length === 0) {
+    list.innerHTML = '<div class="empty-sidebar">Koi QR link nahi.<br/>Upar "+ New QR Link" banao.</div>';
+    return;
   }
-
-  document.getElementById('qr').innerHTML = "";
-
-  qr = new QRCodeStyling({
-    width: 300,
-    height: 300,
-    data: data,
-    image: logoURL,
-
-    dotsOptions: {
-      type: shape,
-      gradient: {
-        type: "linear",
-        colorStops: [
-          { offset: 0, color: color1 },
-          { offset: 1, color: color2 }
-        ]
-      }
-    },
-
-    backgroundOptions: {
-      color: "#ffffff"
-    },
-
-    imageOptions: {
-      margin: 8
-    }
+  list.innerHTML = '';
+  ids.forEach(function(id) {
+    var r = allLinks[id];
+    var el = document.createElement('div');
+    el.className = 'qr-item' + (currentLinkId === id ? ' active' : '');
+    el.id = 'item-' + id;
+    el.innerHTML =
+      '<div class="qr-item-icon">📱</div>' +
+      '<div class="qr-item-info">' +
+        '<div class="qr-item-name">' + (r.label || id) + '</div>' +
+        '<div class="qr-item-id">' + id + '</div>' +
+      '</div>' +
+      '<div class="qr-item-dot"></div>';
+    el.onclick = function() { loadLink(id); };
+    list.appendChild(el);
   });
-
-  qr.append(document.getElementById("qr"));
 }
 
-// 🔹 DOWNLOAD
-function downloadQR(){
-  if(qr){
-    qr.download({ name: "qrflow", extension: "png" });
-  }
+function loadLink(id) {
+  currentLinkId = id;
+  isNew = false;
+  var r = allLinks[id];
+
+  document.getElementById('f-id').value = id;
+  document.getElementById('f-id').disabled = true;
+  document.getElementById('f-label').value = r.label || '';
+  document.getElementById('f-android').value = r.android_url || '';
+  document.getElementById('f-ios').value = r.ios_url || '';
+  document.getElementById('f-fallback').value = r.fallback_url || '';
+
+  document.getElementById('editor-label').textContent = 'Edit Link — ' + id;
+  document.getElementById('btn-delete').style.display = 'block';
+  showEditor();
+  updateQRForId(id);
+
+  document.querySelectorAll('.qr-item').forEach(function(el) { el.classList.remove('active'); });
+  var item = document.getElementById('item-' + id);
+  if (item) item.classList.add('active');
 }
 
+function openNew() {
+  currentLinkId = null;
+  isNew = true;
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-id').disabled = false;
+  document.getElementById('f-label').value = '';
+  document.getElementById('f-android').value = '';
+  document.getElementById('f-ios').value = '';
+  document.getElementById('f-fallback').value = '';
+  document.getElementById('editor-label').textContent = 'New QR Link';
+  document.getElementById('btn-delete').style.display = 'none';
+  document.getElementById('qr-preview-section').style.display = 'none';
+  showEditor();
+  document.querySelectorAll('.qr-item').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('f-id').focus();
+}
+
+function showEditor() {
+  document.getElementById('welcome-screen').style.display = 'none';
+  document.getElementById('editor').style.display = 'block';
+}
+
+function updateQRForId(id) {
+  var qrUrl = REDIRECT_BASE_URL + '?id=' + encodeURIComponent(id) + '&uid=' + encodeURIComponent(currentUser.id);
+  document.getElementById('qr-url-display').textContent = qrUrl;
+  renderQR(qrUrl);
+  document.getElementById('qr-preview-section').style.display = 'block';
+}
+
+function refreshQR() {
+  if (!currentLinkId) return;
+  updateQRForId(currentLinkId);
+}
+
+function renderQR(url) {
+  var size = parseInt(document.getElementById('qr-size').value);
+  var dark = document.getElementById('qr-dark').value;
+  var light = document.getElementById('qr-light').value;
+  var ec = document.getElementById('qr-ec').value;
+  var box = document.getElementById('qr-container');
+  box.innerHTML = '';
+  new QRCode(box, { text: url, width: size, height: size, colorDark: dark, colorLight: light, correctLevel: QRCode.CorrectLevel[ec] });
+}
+
+async function saveLink() {
+  var id = document.getElementById('f-id').value.trim().replace(/\s+/g, '-').toLowerCase();
+  var label = document.getElementById('f-label').value.trim();
+  var android = document.getElementById('f-android').value.trim();
+  var ios = document.getElementById('f-ios').value.trim();
+  var fallback = document.getElementById('f-fallback').value.trim();
+
+  if (!id) { toast('Link ID daalo!', 'fail'); return; }
+  if (!android && !ios) { toast('Android ya iOS URL zaroori hai!', 'fail'); return; }
+
+  var btn = document.getElementById('btn-save');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  var payload = { id: id, user_id: currentUser.id, label: label, android_url: android, ios_url: ios, fallback_url: fallback };
+
+  var { data, error } = isNew
+    ? await sb.from('qr_links').insert(payload).select().single()
+    : await sb.from('qr_links').update(payload).eq('id', currentLinkId).eq('user_id', currentUser.id).select().single();
+
+  btn.textContent = '💾 Save Link'; btn.disabled = false;
+
+  if (error) { toast('Error: ' + error.message, 'fail'); return; }
+
+  allLinks[data.id] = data;
+  currentLinkId = data.id;
+  isNew = false;
+  document.getElementById('f-id').disabled = true;
+  document.getElementById('btn-delete').style.display = 'block';
+  document.getElementById('editor-label').textContent = 'Edit Link — ' + data.id;
+  renderSidebar();
+  updateQRForId(data.id);
+  toast('✓ Saved! Links update ho gayi.', 'ok');
+}
+
+async function deleteLink() {
+  if (!currentLinkId) return;
+  if (!confirm('"' + currentLinkId + '" delete karna chahte ho?')) return;
+
+  var { error } = await sb.from('qr_links').delete().eq('id', currentLinkId).eq('user_id', currentUser.id);
+  if (error) { toast('Delete failed: ' + error.message, 'fail'); return; }
+
+  delete allLinks[currentLinkId];
+  currentLinkId = null;
+  renderSidebar();
+  document.getElementById('welcome-screen').style.display = 'flex';
+  document.getElementById('editor').style.display = 'none';
+  toast('Deleted', 'ok');
+}
+
+function dlPNG() {
+  var canvas = document.querySelector('#qr-container canvas');
+  if (!canvas) return;
+  var a = document.createElement('a');
+  a.download = 'qr-' + (currentLinkId || 'code') + '.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function dlSVG() {
+  var canvas = document.querySelector('#qr-container canvas');
+  if (!canvas) return;
+  var sz = canvas.width, ctx = canvas.getContext('2d'), img = ctx.getImageData(0, 0, sz, sz), rects = '';
+  for (var y = 0; y < sz; y++) for (var x = 0; x < sz; x++) { var i = (y * sz + x) * 4; if (img.data[i] < 128) rects += '<rect x="' + x + '" y="' + y + '" width="1" height="1"/>'; }
+  var dk = document.getElementById('qr-dark').value, lt = document.getElementById('qr-light').value;
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + sz + ' ' + sz + '" width="' + sz + '" height="' + sz + '"><rect width="' + sz + '" height="' + sz + '" fill="' + lt + '"/><g fill="' + dk + '">' + rects + '</g></svg>';
+  var a = document.createElement('a');
+  a.download = 'qr-' + (currentLinkId || 'code') + '.svg';
+  a.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  a.click();
+}
+
+function toast(msg, type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.className = '';
+  setTimeout(function() { el.className = 'show ' + (type || ''); }, 10);
+  setTimeout(function() { el.className = ''; }, 2800);
+}
 </script>
-
 </body>
 </html>
